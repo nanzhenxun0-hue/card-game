@@ -55,41 +55,71 @@ st.sidebar.metric("💰 所持金", f"{st.session_state.gold} G")
 
 tab1, tab2, tab3 = st.tabs(["🎁 パック", "🗃 デッキ", "⚔️ バトル"])
 
+# --- タブ1: パック開封 (演出強化版) ---
 with tab1:
     st.header("✨ ラッキーパック購入")
+    st.write("300Gで3枚のカードをゲット！SRやSECを狙おう！")
+    
     if st.button("パックを開封する！！", key="gacha_btn"):
         if st.session_state.gold >= 300:
             st.session_state.gold -= 300
-            st.session_state.pack_opened_count += 1 # ★カウントアップ！
             
+            # 1. 抽選 (裏側で行う)
             new_cards = random.sample(list(CARD_POOL.keys()), 3)
             st.session_state.collection.extend(new_cards)
             
+            # 2. 演出開始
             st.write("---")
-            placeholders = [st.empty() for _ in range(3)]
-            with st.spinner('パックを開封中...'):
-                time.sleep(1.2)
+            placeholders = [st.empty() for _ in range(3)] # カード表示用の空枠を3つ作成
             
+            # ドラムロール的な待機
+            with st.spinner('パックを開封中...'):
+                time.sleep(1.5)
+            
+            # 1枚ずつ時間差で公開！
             for i, cname in enumerate(new_cards):
                 card = CARD_POOL[cname]
                 rarity = card['rar']
-                time.sleep(0.7)
+                
+                # レアリティによって色と演出を変える
+                if rarity == "SEC":
+                    color = "inverse"
+                    prefix = "🌟🌟 [SECRET] 🌟🌟"
+                elif rarity == "SR":
+                    color = "primary"
+                    prefix = "🔥 [SUPER RARE] 🔥"
+                elif rarity == "R":
+                    color = "success"
+                    prefix = "✨ [RARE] ✨"
+                else:
+                    color = "secondary"
+                    prefix = f"[{rarity}]"
+
+                # じわっと表示される演出
+                time.sleep(0.8)
                 placeholders[i].markdown(f"""
                 <div style="border: 2px solid #ccc; padding: 10px; border_radius: 10px; text-align: center; background-color: rgba(255,255,255,0.1);">
+                    <p style="font-size: 0.8rem; color: #aaa;">Card {i+1}</p>
                     <h3 style="margin: 0;">{cname}</h3>
-                    <strong style="color: gold;">[{rarity}]</strong>
+                    <strong style="color: gold;">{prefix}</strong>
+                    <p style="font-size: 0.9rem;">ATK: {card['atk']}</p>
                 </div>
                 """, unsafe_allow_html=True)
+                
+                # レアカードが出た時の追加エフェクト
+                if rarity in ["SR", "SEC"]:
+                    st.toast(f"すごい！ {cname} が出たぞ！", icon="🎊")
 
-            st.balloons()
+            st.balloons() # 最後に紙吹雪！
             
-            # ★2回引いたら次に進む
-            if st.session_state.tut_step == 0 and st.session_state.pack_opened_count >= 2:
+            # チュートリアル進行
+            if st.session_state.tut_step == 0:
                 st.session_state.tut_step = 1
             
-            st.rerun()
+            time.sleep(0.5)
+            st.rerun() # 状態を確定させる
         else:
-            st.error("ゴールドが足りません！")
+            st.error("ゴールドが足りません！バトルで勝利して稼ぎましょう。")
 
 # --- タブ2: デッキ編集 ---
 with tab2:
